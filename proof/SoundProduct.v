@@ -15,23 +15,26 @@ Require Import ModSem.
 Require Import Skeleton.
 Require Import System.
 Require Import Sound Preservation.
+Require Import Coq.Logic.ClassicalChoice.
+Require Import Coq.Logic.ChoiceFacts.
 
 Set Implicit Arguments.
 Section SOUNDPRODUCT.
 
-  Variable SU0 SU1: Sound.class.
+  Variable I: Type.
+  Variable SU: I -> Sound.class.
 
   (* Local Obligation Tactic := idtac. *)
 
   Global Program Instance sound_class_product: Sound.class :=
-    { Sound.t := SU0.(@Sound.t) * SU1.(@Sound.t);
-      Sound.mle su0 m0 m1 := SU0.(@Sound.mle) su0.(fst) m0 m1 /\ SU1.(@Sound.mle) su0.(snd) m0 m1;
-      Sound.lepriv su0 su1 := SU0.(@Sound.lepriv) su0.(fst) su1.(fst) /\ SU1.(@Sound.lepriv) su0.(snd) su1.(snd);
-      Sound.hle su0 su1 := SU0.(@Sound.hle) su0.(fst) su1.(fst) /\ SU1.(@Sound.hle) su0.(snd) su1.(snd);
-      Sound.wf su0 := SU0.(@Sound.wf) su0.(fst) /\ SU1.(@Sound.wf) su0.(snd);
-      Sound.val su0 v := SU0.(@Sound.val) su0.(fst) v /\ SU1.(@Sound.val) su0.(snd) v;
-      Sound.mem su0 m := SU0.(@Sound.mem) su0.(fst) m /\ SU1.(@Sound.mem) su0.(snd) m;
-      Sound.skenv su0 m ske := SU0.(@Sound.skenv) su0.(fst) m ske /\ SU1.(@Sound.skenv) su0.(snd) m ske
+    { Sound.t := forall i, (SU i).(@Sound.t);
+      Sound.mle su0 m0 m1 := forall i, (SU i).(@Sound.mle) (su0 i) m0 m1;
+      Sound.lepriv su0 su1 := forall i, (SU i).(@Sound.lepriv) (su0 i) (su1 i);
+      Sound.hle su0 su1 := forall i, (SU i).(@Sound.hle) (su0 i) (su1 i);
+      Sound.wf su0 := forall i, (SU i).(@Sound.wf) (su0 i);
+      Sound.val su0 v := forall i, (SU i).(@Sound.val) (su0 i) v;
+      Sound.mem su0 m := forall i, (SU i).(@Sound.mem) (su0 i) m;
+      Sound.skenv su0 m ske := forall i, (SU i).(@Sound.skenv) (su0 i) m ske;
     }
   .
   Next Obligation.
@@ -66,111 +69,131 @@ Section SOUNDPRODUCT.
     ii; ss. des. esplits; ss; eauto;  eapply Sound.hle_val; et.
   Qed.
   Next Obligation.
-    exploit (@Sound.init_spec SU0); eauto. i; des.
-    exploit (@Sound.init_spec SU1); eauto. i; des.
-    exists (su_init, su_init0); eauto.
-    inv SUARGS. inv SUARGS0. ss. des. esplits; ss; eauto.
+    assert (EXISTS:
+              forall i,
+              exists su_init_i,
+                (<<SUARGS: (SU i).(@Sound.args) su_init_i (Args.mk (Genv.symbol_address (Sk.load_skenv sk_link) (prog_main sk_link) Ptrofs.zero) [] m_init)>>) /\
+                (<<SUSKE: (SU i).(@Sound.skenv) su_init_i m_init (Sk.load_skenv sk_link)>>)).
+    { i. exploit (@Sound.init_spec (SU i)); eauto. }
+    eapply (non_dep_dep_functional_choice choice) in EXISTS. des. exists f.
+    ss. esplits.
+    - ii. specialize (EXISTS i). des. eauto.
+    - econs.
+    - ii. specialize (EXISTS i). des. eauto.
+    - ii. specialize (EXISTS i). des. eauto.
+    - ii. specialize (EXISTS i). des. eauto.
   Qed.
   Next Obligation.
-    ss. esplits; eauto; eapply Sound.skenv_lepriv; eauto.
+    ss. ii. esplits; eauto; eapply Sound.skenv_lepriv; eauto.
   Qed.
   Next Obligation.
-    ss. esplits; eauto; eapply Sound.skenv_mle; eauto.
+    ss. ii. esplits; eauto; eapply Sound.skenv_mle; eauto.
   Qed.
   Next Obligation.
-    ss. esplits; eauto; eapply Sound.skenv_project; eauto.
+    ss. ii. esplits; eauto; eapply Sound.skenv_project; eauto.
   Qed.
   Next Obligation.
     ss. rr. esplits; ii; des.
     - erewrite <- ! (Sound.system_skenv) in *; eauto.
-    - erewrite <- (Sound.system_skenv) in H; eauto. erewrite <- (Sound.system_skenv) in H0; eauto.
+    - specialize (H i). erewrite <- (Sound.system_skenv) in H; eauto.
   Qed.
   Next Obligation.
-    ss. des.
-    exploit (@Sound.system_axiom SU0); et.
-    { des_ifs; ss. des. rr. esplits; eauto. rr. rewrite Forall_forall in *. ii; ss; eauto. eapply VALS; eauto. }
-    intro T.
-    exploit (@Sound.system_axiom SU1); et.
-    { des_ifs; ss. des. rr. esplits; eauto. rr. rewrite Forall_forall in *. ii; ss; eauto. eapply VALS; eauto. }
-    intro T0. des. unfold Sound.retv in *. ss. des.
-    eexists (su0, su1). esplits; ss; eauto.
+    assert (EXISTS:
+              forall i,
+              exists su1_i,
+                <<LE: (SU i).(@Sound.hle) (su0 i) su1_i>> /\ <<RETV: su1_i.(Sound.retv) (Retv.mk v_ret m_ret)>> /\ <<MLE: (su0 i).(Sound.mle) args0.(Args.m) m_ret>>).
+    { i. exploit (@Sound.system_axiom (SU i)); et.
+      unfold Sound.args. des_ifs; ss. des. splits; auto.
+      eapply Forall_impl; try apply VALS. ss. }
+    eapply (non_dep_dep_functional_choice choice) in EXISTS. des. exists f.
+    ss. esplits.
+    - ii. specialize (EXISTS i). des. eauto.
+    - ii. specialize (EXISTS i). des. eauto.
+    - ii. specialize (EXISTS i). des. eauto.
+    - ii. specialize (EXISTS i). des. eauto.
+    - ii. specialize (EXISTS i). des. eauto.
   Qed.
 
   Lemma sound_args_iff
-        su0 su1 args:
-      (@Sound.args SU0 su0 args) /\ (@Sound.args SU1 su1 args) <-> (@Sound.args sound_class_product (su0, su1) args)
+        su args:
+      (forall i, <<ARGS: @Sound.args (SU i) (su i) args>>) <-> (@Sound.args sound_class_product su args)
   .
   Proof.
     unfold Sound.args. unfold Sound.vals. ss.
     des_ifs.
-    - split; ii; des; esplits; eauto; rewrite Forall_forall in *; ii; ss; eauto.
-      + eapply VALS; eauto.
-      + eapply VALS; eauto.
-    - split; ii; des; esplits; eauto; ii; ss; eauto.
-      + eapply REGSET; eauto.
-      + eapply REGSET; eauto.
+    - split; ii; des; esplits; eauto; i.
+      + spc H. des. auto.
+      + rewrite Forall_forall. i. spc H. des.
+        rewrite Forall_forall in *. auto.
+      + spc H. des. auto.
+      + spc H. des. auto.
+      + rewrite Forall_forall. i. rewrite Forall_forall in *. auto.
+    - split; ii; des; esplits; eauto; ii; try (spc H; des; eauto).
+      eapply REGSET.
   Qed.
 
   Lemma sound_skenv_iff
-        su0 su1 m ske
+        su m ske
     :
-      (@Sound.skenv SU0 su0 m ske) /\ (@Sound.skenv SU1 su1 m ske) <-> (@Sound.skenv sound_class_product (su0, su1) m ske)
+      (forall i, <<SKENV: @Sound.skenv (SU i) (su i) m ske>>) <-> (@Sound.skenv sound_class_product su m ske)
   .
   Proof.
-    split; ii; des; esplits; ss; des; eauto.
+    split; ii; des; esplits; ss; des; eauto. eapply H.
   Qed.
 
   Lemma sound_retv_iff
-        su0 su1 args:
-      (@Sound.retv SU0 su0 args) /\ (@Sound.retv SU1 su1 args) <-> (@Sound.retv sound_class_product (su0, su1) args)
+        su retv:
+      (forall i, <<RETV: @Sound.retv (SU i) (su i) retv>>) <-> (@Sound.retv sound_class_product su retv)
   .
   Proof.
     unfold Sound.retv. ss.
     des_ifs.
-    - split; ii; des; esplits; eauto; rewrite Forall_forall in *; ii; ss; eauto.
-    - split; ii; des; esplits; eauto; ii; ss; eauto.
-      + eapply REGSET.
-      + eapply REGSET.
+    - split; ii; des; esplits; eauto; ii; spc H; des; auto.
+    - split; ii; des; esplits; eauto; ii; try (spc H); des; ss; eauto. eapply REGSET.
   Qed.
 
   Theorem preservation_product
-          ms sound_state0 sound_state1
-          (PRSV0: @local_preservation SU0 ms sound_state0)
-          (PRSV1: @local_preservation SU1 ms sound_state1):
+          ms sound_state
+          (PRSV: forall i, @local_preservation (SU i) ms (sound_state i))
+    :
       <<PRSV: @local_preservation sound_class_product ms
-                                  (fun su m st => sound_state0 su.(fst) m st /\ sound_state1 su.(snd) m st)>>.
+                                  (fun su m st => forall i, (sound_state i) (su i) m st)>>.
   Proof.
-    inv PRSV0. inv PRSV1. econs; eauto.
-    - clear - INIT INIT0. ii. ss.
-      specialize (INIT su_init.(fst)).
-      specialize (INIT0 su_init.(snd)).
-      split; ss.
-      + eapply INIT; eauto.
-        { destruct su_init; ss. eapply sound_args_iff in SUARG; eauto. ss; des; ss. }
-        { destruct su_init; ss. eapply sound_skenv_iff in SKENV; eauto. ss; des; ss. }
-      + eapply INIT0; eauto.
-        { destruct su_init; ss. eapply sound_args_iff in SUARG; eauto. des. ss. }
-        { destruct su_init; ss. eapply sound_skenv_iff in SKENV; eauto. ss; des; ss. }
-    - clear - STEP STEP0. ii. ss. des.
-      specialize (STEP m_arg su0.(fst)). specialize (STEP0 m_arg su0.(snd)).
-      split; ss.
-      + eapply STEP; eauto.
-      + eapply STEP0; eauto.
-    - clear - CALL CALL0. ii. ss. des.
-      exploit CALL; eauto. i; des.
-      exploit CALL0; eauto. i; des.
-      esplits; eauto.
-      { instantiate (1:= (su_gr, su_gr0)). eapply sound_args_iff; eauto. }
-      { ss. }
-      { ss. }
-      i. ss. des. split; ss.
-      + eapply K; eauto. destruct su_ret; ss. eapply sound_retv_iff in RETV. des; ss.
-      + eapply K0; eauto. destruct su_ret; ss. eapply sound_retv_iff in RETV. des; ss.
-    - clear - RET RET0. ii. ss. des.
-      specialize (RET m_arg su0.(fst)). specialize (RET0 m_arg su0.(snd)).
-      exploit RET; eauto. i; des.
-      exploit RET0; eauto. i; des.
-      exists (su_ret, su_ret0). esplits; eauto. eapply sound_retv_iff. ss.
+    econs; eauto.
+    - ii. spc PRSV. inv PRSV. ss.
+      eapply INIT0; eauto. eapply sound_args_iff in SUARG; eauto.
+    - ii. spc PRSV. inv PRSV. ss.
+      eapply STEP0; eauto.
+    - ii. split.
+      + ii. spc PRSV. inv PRSV. exploit CALL; eauto. i. des. eauto.
+      + assert (EXISTS: forall i, exists su_gr_i,
+                     (<<ARGS: Sound.args su_gr_i args>>) /\
+                     (<<LE: Sound.lepriv (su0 i) su_gr_i>>) /\
+                     (<<K: forall su_ret retv st1
+                                  (LE: Sound.hle su_gr_i su_ret)
+                                  (RETV: su_ret.(Sound.retv) retv)
+                                  (MLE: Sound.mle su_gr_i args.(Args.get_m) retv.(Retv.get_m))
+                                  (AFTER: ms.(ModSem.after_external) st0 retv st1)
+                       ,
+                         (<<SUST: sound_state _ (su0 i) m_arg st1>>)>>)).
+        { ii. spc PRSV. inv PRSV.
+          exploit CALL; eauto. i. des. esplits; eauto. }
+        eapply (non_dep_dep_functional_choice choice) in EXISTS. des. exists f.
+        ss. esplits.
+        * rewrite <- sound_args_iff. ii. spc EXISTS. des. auto.
+        * ii. spc EXISTS. des. auto.
+        * ii. spc EXISTS. des. eapply K; eauto.
+          rewrite <- sound_retv_iff in RETV. eapply RETV.
+    - i.
+      assert (EXISTS: forall i, exists su_ret_i,
+                   (<<LE: Sound.hle (su0 i) su_ret_i>>) /\
+                   (<<RETV: su_ret_i.(Sound.retv) retv>>) /\ (<<MLE: (su0 i).(Sound.mle) m_arg retv.(Retv.get_m)>>)).
+      { i. spc PRSV. inv PRSV. eapply RET; eauto. }
+      eapply (non_dep_dep_functional_choice choice) in EXISTS. des. exists f.
+      ss. esplits.
+      + i. spc EXISTS. des. auto.
+      + rewrite <- sound_retv_iff. i. spc EXISTS. des. auto.
+      + i. spc EXISTS. des. auto.
   Qed.
 
 End SOUNDPRODUCT.

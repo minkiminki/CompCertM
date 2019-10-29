@@ -24,7 +24,7 @@ Set Implicit Arguments.
 
 Module Sound.
 
-  Class class :=
+  Polymorphic Class class :=
   {
     t: Type;
 
