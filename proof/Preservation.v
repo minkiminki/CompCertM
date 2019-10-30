@@ -130,7 +130,7 @@ Inductive local_preservation_standard (sound_state: Sound.t -> ms.(state) -> Pro
               (AFTER: ms.(ModSem.after_external) st0 retv st1)
             ,
               exists su1,
-                <<LE: Sound.hle su0 su1>> /\
+                <<LE: Sound.hle su0 su1>> /\ <<LEPRV: Sound.lepriv su_ret su1>> /\
               (<<SUST: sound_state su1 st1>> /\ <<MLE: su0.(Sound.mle) st0.(get_mem) st1.(get_mem)>>)>>))
     (RET: forall
         su0 st0 retv
@@ -199,7 +199,7 @@ Inductive local_preservation_strong (sound_state: Sound.t -> ms.(state) -> Prop)
               (<<SUST: forall
                  (MLE: su0.(Sound.mle) retv.(Retv.get_m) st1.(get_mem))
                  (SKENV: Sound.skenv su0 st1.(get_mem) ms.(ModSem.skenv)),
-                 sound_state su0 st1>> /\ <<MLE: su0.(Sound.mle) retv.(Retv.get_m) st1.(get_mem)>>)>>))
+                 sound_state su0 st1>> /\ <<MLE: su0.(Sound.mle) retv.(Retv.get_m) st1.(get_mem)>> /\ <<LEPRV: Sound.lepriv su_ret su0>>)>>))
     (RET: forall
         su0 st0 retv
         (SKENV: Sound.skenv su0 st0.(get_mem) ms.(ModSem.skenv))
@@ -286,7 +286,7 @@ Inductive local_preservation_strong_horizontal (sound_state: Sound.t -> ms.(stat
               (MLE: Sound.mle su_gr args.(Args.get_m) retv.(Retv.get_m))
               (AFTER: ms.(ModSem.after_external) st0 retv st1),
               exists su1,
-                <<LE: Sound.hle su0 su1>> /\
+                <<LE: Sound.hle su0 su1>> /\ <<LEPRV: Sound.lepriv su_ret su1>> /\
               (<<SUST: sound_state su1 st1>> /\ <<MLE: su0.(Sound.mle) retv.(Retv.get_m) st1.(get_mem)>>)>>))
     (RET: forall
         su0 st0 retv
@@ -426,7 +426,7 @@ Inductive local_preservation_strong_horizontal_excl (sound_state: Sound.t -> ms.
               (MLE: Sound.mle su_gr args.(Args.get_m) retv.(Retv.get_m))
               (AFTER: ms.(ModSem.after_external) st0 retv st1),
               exists su1,
-                <<LE: Sound.hle su0 su1>> /\
+                <<LE: Sound.hle su0 su1>> /\ <<LEPRV: Sound.lepriv su_ret su1>> /\
               (<<SUST: sound_state su1 st1>> /\ <<MLE: (mle_excl st0) su0 retv.(Retv.get_m) st1.(get_mem)>>)>>))
     (RET: forall
         su0 st0 retv
