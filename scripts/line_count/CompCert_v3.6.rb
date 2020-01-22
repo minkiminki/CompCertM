@@ -5,7 +5,7 @@ def print_result(result)
   puts "RESULTS: #{result[0].to_i + result[1].to_i}"
 end
 
-puts "Count CompCert v3.5"
+puts "Count CompCert v3.6"
 puts
 puts "<<Preprocessing>>"
 puts "make *.vp > *.v"

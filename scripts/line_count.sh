@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# -ne 1 ]; then
-  echo "Use one arguments [CompCert_v2.1 / CompCert_v3.0.1 / CompCert_v3.5 / CompCertX / CompComp / CompCertM / CompCertM-linking / tex]"
+  echo "Use one arguments [CompCert_v2.1 / CompCert_v3.0.1 / CompCert_v3.6 / CompCertX / CompComp / CompCertM / CompCertM-linking / tex]"
   exit 1
 fi
 
@@ -23,12 +23,12 @@ elif [ "$1" == "CompCert_v3.0.1" ]; then
     ruby CompCert_v3.0.1.rb
     cd ..
     rm -rf _CompCert
-elif [ "$1" == "CompCert_v3.5" ]; then
-    git clone -c advice.detachedHead=false -q -b v3.5 https://github.com/AbsInt/CompCert.git _CompCert
-    cp line_count/CompCert_v3.5.rb _CompCert/
+elif [ "$1" == "CompCert_v3.6" ]; then
+    git clone -c advice.detachedHead=false -q -b v3.6 https://github.com/AbsInt/CompCert.git _CompCert
+    cp line_count/CompCert_v3.6.rb _CompCert/
     cp line_count/ndfun _CompCert/
     cd _CompCert
-    ruby CompCert_v3.5.rb
+    ruby CompCert_v3.6.rb
     cd ..
     rm -rf _CompCert
 elif [ "$1" == "CompCertX" ]; then
@@ -53,7 +53,7 @@ elif [ "$1" == "CompCertM" ]; then
     cd ../../
     ruby CompCertM.rb
     rm CompCertM.rb ndfun
-    cd compcomp-linking/scripts
+    cd CompCertM/scripts
 elif [ "$1" == "CompCertM-linking" ]; then
     cp line_count/CompCertM-linking.rb ../
     cd ../
@@ -68,5 +68,5 @@ elif [ "$1" == "tex" ]; then
     mv results_table.tex scripts/
     cd scripts
 else
-  echo "Use one arguments [CompCert_v2.1 / CompCert_v3.0.1 / CompCert_v3.5 / CompCertX / CompComp / CompCertM / CompCertM-linking/ tex]"
+  echo "Use one arguments [CompCert_v2.1 / CompCert_v3.0.1 / CompCert_v3.6 / CompCertX / CompComp / CompCertM / CompCertM-linking/ tex]"
 fi

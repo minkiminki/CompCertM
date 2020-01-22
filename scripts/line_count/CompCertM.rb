@@ -25,7 +25,7 @@ PASS_PROOFS=["cfrontend/Cstrategyproof",
              "x86/Asmgenproof", "x86/Asmgenproof1",
              "backend/ValueAnalysis"]
 
-f = File.open("compcomp-linking/scripts/line_count/Shared_Pass_Proof", "r")
+f = File.open("CompCertM/scripts/line_count/Shared_Pass_Proof", "r")
 f.each_line do |line|
   line.split(" ").map!{|i| PASS_PROOFS << i}
 end
@@ -33,7 +33,7 @@ f.close
 
 PASS_PROOFS.map!{|i| i + ".v"}
 
-EXCLUDE_FOLDERS=["compcomp-linking", ".normal_build", "demo", "arm", "powerpc", "riscV", "x86_32", "cparser"]
+EXCLUDE_FOLDERS=["CompCertM", ".normal_build", "demo", "arm", "powerpc", "riscV", "x86_32", "cparser"]
 
 EXCLUDE_FOLDER=EXCLUDE_FOLDERS.inject(""){|sum, i| sum + "! -path \'*" + i + "\/*\' "}
 
